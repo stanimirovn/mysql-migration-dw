@@ -1,0 +1,126 @@
+---
+title: Troubleshooting On-Demand Instances
+owner: MySQL
+---
+
+
+This topic provides techniques that app developers can use to begin troubleshooting
+ on-demand instances.
+
+## <a id="errors"></a> Troubleshoot Errors
+
+Start here if you are responding to a specific error or error messages.
+
+### <a id="x-product"></a> Common Service Errors
+
+Errors common to on-demand services are:
+
++ [No Metrics from Log Cache](#no-metrics)
+
++ [When Using Service-Gateway Access, create-service or update-service Fails](#no-service-gateway-ports)
+
+[//]: # (The below partial is in https://github.com/pivotal-cf/docs-partials)
+
+<style>
+main table {
+  table-layout: fixed;
+}
+</style>
+
+<div>
+<table class="nice" id="no-metrics">
+    <style>
+      main table {
+        table-layout: fixed;
+      }
+    </style>
+  <col width="20%">
+  <col width="80%">
+  <tr>
+    <th colspan="2" style="text-align: left;"> <br>No Metrics from Log Cache<br><br></th>
+  </tr>
+  <tr>
+    <th>Symptom</th>
+    <td>You receive no metrics when running the <code>cf tail</code> command.</td>
+  </tr>
+  <tr>
+    <th>Cause</th>
+    <td>This might be because the Firehose is disabled in the TAS for VMs tile.</td>
+  </tr>
+  <tr>
+    <th style="vertical-align: top; padding-top: 1em;">Solution</th>
+    <td>Ask your operator to ensure that the V2 Firehose checkbox is enabled, and the Enable Log Cache syslog ingestion checkbox is disabled in the TAS for VMs tile. For more information about configuring these checkboxes, see
+    <a href="https://docs.pivotal.io/application-service/operating/logging-config-opsman.html#syslog-forward">Enable Syslog Forwarding</a></td>
+  </tr>
+</table>
+</div>
+
+<style>
+main table {
+  table-layout: fixed;
+}
+</style>
+
+<div>
+<table class="nice" id="no-service-gateway-ports">
+    <style>
+      main table {
+        table-layout: fixed;
+      }
+    </style>
+  <col width="20%">
+  <col width="80%">
+  <tr>
+    <th colspan="2" style="text-align: left;"> <br>When Using Service-Gateway Access, create-service or update-service Fails<br><br></th>
+  </tr>
+  <tr>
+    <th>Symptom</th>
+    <td><p>When you run <code>cf create-service</code> or <code>cf update-service</code> with
+        <code>{\"enable_external_access\": true}</code>, you receive an error like this:</p>
+        <pre class='terminal'>Service broker error: contact your operator,<br>service configuration issue occurred</pre>
+    </td>
+  </tr>
+  <tr>
+    <th>Cause</th>
+    <td><p>When off-platform access is set up for a foundation, a range of TCP ports is reserved for MySQL traffic.
+            Each service instance for which service-gateway access is enabled requires one port.</p>
+            <p>If all the ports in the range have been assigned to other service instances,
+            then you cannot create or update service instances to use service-gateway access.</p></td>
+  </tr>
+  <tr>
+    <th style="vertical-align: top; padding-top: 1em;">Solution</th>
+    <td><p>To resolve this error, confirm that the problem is due to not enough ports
+               and, if so, increase the port range:</p>
+                <ol>
+                 <li>
+                     Review the BOSH logs on the MySQL service broker VM,
+                     and, in the <code>broker.stdout.log</code> file look for this error message:
+                     <code>Failed to update manifest: There are no free ports in range: […</code>
+                     For information about how to download the service broker logs,
+                     see <a href='troubleshoot.html#bosh-cf-access'>Access Broker Logs and VMs</a>.
+                  </li>
+                  <li> Ask the operator to increase the external TCP port range for off-platform access
+                       by editing the <strong>Settings</strong> pane on the #{vars.product_short} tile.
+                       For information about the Settings pane,
+                       see <a href='enable-service-gateway.html#configure-service-gateway-plan'>
+                       Enable Service-Gateway Access</a> in <em>Enabling Service-Gateway Access</em>.
+                  </li>
+                 </ol></td>
+  </tr>
+</table>
+</div>
+
+
+
+### <a id="inaccessible"></a>If Instances or Database are Inaccessible
+
+You might experience the following in a leader-follower or <%= vars.single_leader_plan %>
+topology, or during upgrades:
+
+- [Temporary Outages](#outages)
+- [Apps Cannot Write to the Database](#read-only)
+- [Apps Are Inoperable](#disk-full)
+- [Apps Cannot Connect to the Database](#m-tls-error)
+- [MySQL Connector/J v5.1.41 or Earlier](#connecter)
+- [Mutual TLS](#m-tls)
+- [Java Apps Cannot Connect after Buildpack Update](#java-buildpack)
